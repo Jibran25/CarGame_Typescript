@@ -1,5 +1,5 @@
 {
-  "homepage": "https://jibran25.github.io/CarGame_Typescript/",
+  
   "dependencies": {
     "@babel/preset-env": "^7.23.2",
     "@babel/preset-typescript": "^7.23.2",

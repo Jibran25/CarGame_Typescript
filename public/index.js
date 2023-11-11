@@ -1,29 +1,16 @@
 "use strict";
-// ────────────────────────────────────────────────────────── I ──────────
-//   :::::: V A R I A B L E S : :  :   :    :     :        :          :
-// ────────────────────────────────────────────────────────────────────
 const score = document.querySelector("#score");
 const level = document.querySelector("#level");
 const bgAudio = document.querySelector("#bgAudio");
 const boardSpeed = document.querySelector("#speed");
-const gameArea = document.querySelector(".gameArea"); //! 1st MAIN
+const gameArea = document.querySelector(".gameArea");
 const hiScoreSet = localStorage.getItem("highScore");
 const hiScoreDiv = document.querySelector("#hiScore");
 const scoreBroad = document.querySelector("#scoreBroad");
 const startScreen = document.querySelector(".startScreen");
 const endGameAudio = document.querySelector("#endGameAudio");
 const hiScoreBroad = document.querySelector("#hiScoreBroad");
-const player = {
-    // DEFAULT VALUES
-    speed: 10,
-    score: 0,
-    speedEndPoint: 18,
-    speedUp: 10,
-    level: 0,
-    levelUp: true,
-    start: false,
-};
-const gameKeys = {
+let gameKeys = {
     KeyW: false,
     KeyS: false,
     KeyA: false,
@@ -34,76 +21,138 @@ const gameKeys = {
     ArrowLeft: false,
     Space: false,
 };
-// ...
+const player = {
+    speed: 10,
+    score: 0,
+    speedEndPoint: 18,
+    speedUp: 10,
+    level: 0,
+    X: 0,
+    Y: 0,
+    levelUp: true,
+};
+let hiscoreVal;
+document.addEventListener("keydown", keyDown);
+document.addEventListener("keyup", keyUp);
+startScreen.addEventListener("click", gameStart);
+if (hiScoreSet === null) {
+    hiscoreVal = 0;
+    localStorage.setItem("highScore", hiscoreVal.toString());
+}
+else {
+    hiscoreVal = parseInt(hiScoreSet);
+    hiScoreDiv.innerHTML = `high score: ${hiscoreVal}`;
+}
+function keyDown(e) {
+    e.preventDefault();
+    gameKeys[e.code] = true;
+    // console.log();   
+}
+function keyUp(e) {
+    e.preventDefault();
+    gameKeys[e.code] = false;
+    // console.log(); 
+}
 function gameStart() {
-    // ...
-    // ───   CREATING, ADDING CLASS AND INSERT PLAYERCAR DIV.────────────────────────────────────────────────────────────────────────
-    const playerCar = document.createElement("div");
+    player.start = true;
+    bgAudio.src = "public/assets/audio/bg.mp3";
+    bgAudio.play();
+    bgAudio.loop = true;
+    bgAudio.currentTime = 0;
+    gameArea.innerHTML = "";
+    startScreen.classList.add("hideClass");
+    window.requestAnimationFrame(gamePlay);
+    let playerCar = document.createElement("div");
     playerCar.setAttribute("class", "playerCar");
     gameArea.appendChild(playerCar);
-    // ─── FINDING PLAYERCAR POSITION BY OFFSET ─────────────────────────────────────────────
     player.X = playerCar.offsetLeft || 0;
     player.Y = playerCar.offsetTop || 0;
-    // ...
-    // ─── CREATING ,ADDING CLASS AND INSERTING ROADLINE DIV    __________________________________________________________________________
     for (let i = 0; i <= 9; i++) {
-        const roadLines = document.createElement("div");
+        let roadLines = document.createElement("div");
         roadLines.setAttribute("class", "lines");
         roadLines.Y = i * 180;
         roadLines.style.top = roadLines.Y + "px";
         gameArea.appendChild(roadLines);
     }
-    // ─── CREATING ,ADDING CLASS AND INSERTING OTHERCARS DIV    __________________________________________________________________________
     for (let x = 0; x <= 2; x++) {
-        // FOR 3 CARS
-        const otherCars = document.createElement("div");
+        let otherCars = document.createElement("div");
         otherCars.setAttribute("class", "otherCars");
-        otherCars.Y = (x + 1) * 250 * -1; // USEING IN MOVEOTHERCAR()
+        otherCars.Y = (x + 1) * 250 * -1;
         gameArea.appendChild(otherCars);
     }
 }
-// ...
-// ──────────────────────────────────────────────────── IV───────── ::::::FUNCTION FOR ANIMATION, COLLIDING, RANDOM CARS AND ROADLINES : :  ──────────────────────────────────────────────────────────────
-// ─── FOR ROADLINE MOVING ─────────────────────────────────────────
+function gamePlay() {
+    let playerCar = document.querySelector(".playerCar");
+    let gaPositions = gameArea.getBoundingClientRect();
+    let pcPositions = playerCar.getBoundingClientRect();
+    if (player.start) {
+        moveLine();
+        moveOtherCar(pcPositions);
+        if ((gameKeys.KeyW || gameKeys.ArrowUp) &&
+            gaPositions.top < pcPositions.top - 155) {
+            player.Y -= player.speed;
+        }
+        else if ((gameKeys.KeyS || gameKeys.ArrowDown) &&
+            gaPositions.bottom > pcPositions.bottom + 20) {
+            player.Y += player.speed;
+        }
+        else if ((gameKeys.KeyA || gameKeys.ArrowLeft) &&
+            gaPositions.left < pcPositions.left - 30) {
+            player.X -= player.speed;
+        }
+        else if ((gameKeys.KeyD || gameKeys.ArrowRight) &&
+            gaPositions.right > pcPositions.right + 30) {
+            player.X += player.speed;
+        }
+        playerCar.style.top = `${player.Y}px`;
+        playerCar.style.left = `${player.X}px`;
+        window.requestAnimationFrame(gamePlay);
+        let currentScore = player.score++;
+        score.innerText = "score: " + currentScore;
+        if (currentScore > hiscoreVal) {
+            hiscoreVal = currentScore;
+            localStorage.setItem("highScore", hiscoreVal.toString());
+            hiScoreDiv.innerHTML = `high score: ${hiscoreVal}`;
+        }
+        if (!player.start) {
+            scoreBroad.innerText = `your score: ${currentScore}`;
+            hiScoreBroad.innerText = `your high score: ${hiscoreVal}`;
+            player.score = 0;
+        }
+        increaseSpeed(currentScore);
+    }
+}
 function moveLine() {
-    const roadlines = document.querySelectorAll(".lines");
+    let roadlines = document.querySelectorAll(".lines");
     roadlines.forEach((value) => {
-        if (value.Y !== undefined && value.Y >= 900) {
-            // REPEATING ROADLINE AT A POINT
+        if (value.Y >= 900) {
             value.Y -= 900;
         }
-        if (value.Y !== undefined) {
-            value.Y += player.speed; // FOR SPEED OF LINE
-            value.style.top = value.Y + "px"; // MAKE DISTANCE IN EACH LINES INTO TOP
-        }
+        value.Y += player.speed;
+        value.style.top = value.Y + "px";
     });
 }
-// ────── FOR OTHERCARS MOVING ────────────────────────────────────────
 function moveOtherCar(playerCar) {
-    const otherCars = document.querySelectorAll(".otherCars");
+    let otherCars = document.querySelectorAll(".otherCars");
     otherCars.forEach((value) => {
-        if (value.Y !== undefined) {
-            if (colliding(playerCar, value)) {
-                gameOver();
-            }
-            else if (value.Y >= 900) {
-                value.Y -= 900;
-                //  FOR OTHER CAR REMOVE POSITIONS
+        var _a, _b;
+        if (colliding(playerCar, value)) {
+            gameOver();
+        }
+        else {
+            if (value.Y === undefined || value.Y >= 900) {
+                value.Y = ((_a = value.Y) !== null && _a !== void 0 ? _a : 0) - 900;
                 value.style.left = Math.floor(Math.random() * 99) + 1 + "%";
             }
-            value.Y += player.speed;
+            value.Y = ((_b = value.Y) !== null && _b !== void 0 ? _b : 0) + player.speed;
             value.style.top = value.Y + "px";
         }
     });
 }
-// ...
-// Rest of the code remains unchanged
-//   This should address the issues related to Y being possibly undefined. If you encounter any further errors or have additional questions, feel free to ask.
-// ────── INCREASING SPEED WHEN SCORE DIFFERENT 100 ───────────────────
 function increaseSpeed(speed) {
     let count = parseInt(speed.toString().substr(-2));
     if (count == 99) {
-        player.speed += 0.5;
+        player.speed += 0.005;
     }
     if (player.speed == player.speedEndPoint) {
         player.speed = player.speedUp;
@@ -114,7 +163,6 @@ function increaseSpeed(speed) {
     level.innerText = `Level: ${player.level}`;
     boardSpeed.innerText = `Speed: ${player.speed}`;
 }
-// ────── FUNCTION FOR FINDING COLLIDING BETWEEN PLAYERCAR AND OTHERCARS
 function colliding(pcPositions, otherCars) {
     let otherCar = otherCars.getBoundingClientRect();
     return !(pcPositions.right < otherCar.left ||
@@ -122,7 +170,6 @@ function colliding(pcPositions, otherCars) {
         pcPositions.top > otherCar.bottom ||
         pcPositions.left > otherCar.right);
 }
-// ─── ─── WHEN GAME IS OVER ────────────────────────────────────────────────────
 function gameOver() {
     player.start = false;
     player.speed = 10;
