@@ -6,7 +6,7 @@ const config : webpack.Configuration = {
     devtool: "eval-source-map",
     mode: "development",
     output: {
-        filename: "main.js",
+        filename: "index.js",
         path: path.resolve(__dirname, "public")
     },
     module: {

@@ -20,7 +20,7 @@ eval("\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\ncons
 
 /***/ }),
 
-/***/ "./src/form.ts":
+/***/ "./src/index.ts":
 /*!*********************!*\
   !*** ./src/form.ts ***!
   \*********************/
