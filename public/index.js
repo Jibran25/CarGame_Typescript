@@ -1,181 +1,33 @@
-"use strict";
-const score = document.querySelector("#score");
-const level = document.querySelector("#level");
-const bgAudio = document.querySelector("#bgAudio");
-const boardSpeed = document.querySelector("#speed");
-const gameArea = document.querySelector(".gameArea");
-const hiScoreSet = localStorage.getItem("highScore");
-const hiScoreDiv = document.querySelector("#hiScore");
-const scoreBroad = document.querySelector("#scoreBroad");
-const startScreen = document.querySelector(".startScreen");
-const endGameAudio = document.querySelector("#endGameAudio");
-const hiScoreBroad = document.querySelector("#hiScoreBroad");
-let gameKeys = {
-    KeyW: false,
-    KeyS: false,
-    KeyA: false,
-    KeyD: false,
-    ArrowUp: false,
-    ArrowDown: false,
-    ArrowRight: false,
-    ArrowLeft: false,
-    Space: false,
-};
-const player = {
-    speed: 10,
-    score: 0,
-    speedEndPoint: 18,
-    speedUp: 10,
-    level: 0,
-    X: 0,
-    Y: 0,
-    levelUp: true,
-};
-let hiscoreVal;
-document.addEventListener("keydown", keyDown);
-document.addEventListener("keyup", keyUp);
-startScreen.addEventListener("click", gameStart);
-if (hiScoreSet === null) {
-    hiscoreVal = 0;
-    localStorage.setItem("highScore", hiscoreVal.toString());
-}
-else {
-    hiscoreVal = parseInt(hiScoreSet);
-    hiScoreDiv.innerHTML = `high score: ${hiscoreVal}`;
-}
-function keyDown(e) {
-    e.preventDefault();
-    gameKeys[e.code] = true;
-    // console.log();   
-}
-function keyUp(e) {
-    e.preventDefault();
-    gameKeys[e.code] = false;
-    // console.log(); 
-}
-function gameStart() {
-    player.start = true;
-    bgAudio.src = "public/assets/audio/bg.mp3";
-    bgAudio.play();
-    bgAudio.loop = true;
-    bgAudio.currentTime = 0;
-    gameArea.innerHTML = "";
-    startScreen.classList.add("hideClass");
-    window.requestAnimationFrame(gamePlay);
-    let playerCar = document.createElement("div");
-    playerCar.setAttribute("class", "playerCar");
-    gameArea.appendChild(playerCar);
-    player.X = playerCar.offsetLeft || 0;
-    player.Y = playerCar.offsetTop || 0;
-    for (let i = 0; i <= 9; i++) {
-        let roadLines = document.createElement("div");
-        roadLines.setAttribute("class", "lines");
-        roadLines.Y = i * 180;
-        roadLines.style.top = roadLines.Y + "px";
-        gameArea.appendChild(roadLines);
-    }
-    for (let x = 0; x <= 2; x++) {
-        let otherCars = document.createElement("div");
-        otherCars.setAttribute("class", "otherCars");
-        otherCars.Y = (x + 1) * 250 * -1;
-        gameArea.appendChild(otherCars);
-    }
-}
-function gamePlay() {
-    let playerCar = document.querySelector(".playerCar");
-    let gaPositions = gameArea.getBoundingClientRect();
-    let pcPositions = playerCar.getBoundingClientRect();
-    if (player.start) {
-        moveLine();
-        moveOtherCar(pcPositions);
-        if ((gameKeys.KeyW || gameKeys.ArrowUp) &&
-            gaPositions.top < pcPositions.top - 155) {
-            player.Y -= player.speed;
-        }
-        else if ((gameKeys.KeyS || gameKeys.ArrowDown) &&
-            gaPositions.bottom > pcPositions.bottom + 20) {
-            player.Y += player.speed;
-        }
-        else if ((gameKeys.KeyA || gameKeys.ArrowLeft) &&
-            gaPositions.left < pcPositions.left - 30) {
-            player.X -= player.speed;
-        }
-        else if ((gameKeys.KeyD || gameKeys.ArrowRight) &&
-            gaPositions.right > pcPositions.right + 30) {
-            player.X += player.speed;
-        }
-        playerCar.style.top = `${player.Y}px`;
-        playerCar.style.left = `${player.X}px`;
-        window.requestAnimationFrame(gamePlay);
-        let currentScore = player.score++;
-        score.innerText = "score: " + currentScore;
-        if (currentScore > hiscoreVal) {
-            hiscoreVal = currentScore;
-            localStorage.setItem("highScore", hiscoreVal.toString());
-            hiScoreDiv.innerHTML = `high score: ${hiscoreVal}`;
-        }
-        if (!player.start) {
-            scoreBroad.innerText = `your score: ${currentScore}`;
-            hiScoreBroad.innerText = `your high score: ${hiscoreVal}`;
-            player.score = 0;
-        }
-        increaseSpeed(currentScore);
-    }
-}
-function moveLine() {
-    let roadlines = document.querySelectorAll(".lines");
-    roadlines.forEach((value) => {
-        if (value.Y >= 900) {
-            value.Y -= 900;
-        }
-        value.Y += player.speed;
-        value.style.top = value.Y + "px";
-    });
-}
-function moveOtherCar(playerCar) {
-    let otherCars = document.querySelectorAll(".otherCars");
-    otherCars.forEach((value) => {
-        var _a, _b;
-        if (colliding(playerCar, value)) {
-            gameOver();
-        }
-        else {
-            if (value.Y === undefined || value.Y >= 900) {
-                value.Y = ((_a = value.Y) !== null && _a !== void 0 ? _a : 0) - 900;
-                value.style.left = Math.floor(Math.random() * 99) + 1 + "%";
-            }
-            value.Y = ((_b = value.Y) !== null && _b !== void 0 ? _b : 0) + player.speed;
-            value.style.top = value.Y + "px";
-        }
-    });
-}
-function increaseSpeed(speed) {
-    let count = parseInt(speed.toString().substr(-2));
-    if (count == 99) {
-        player.speed += 0.005;
-    }
-    if (player.speed == player.speedEndPoint) {
-        player.speed = player.speedUp;
-        player.speedUp += 1;
-        player.speedEndPoint += 1;
-        player.level += 1;
-    }
-    level.innerText = `Level: ${player.level}`;
-    boardSpeed.innerText = `Speed: ${player.speed}`;
-}
-function colliding(pcPositions, otherCars) {
-    let otherCar = otherCars.getBoundingClientRect();
-    return !(pcPositions.right < otherCar.left ||
-        pcPositions.bottom < otherCar.top ||
-        pcPositions.top > otherCar.bottom ||
-        pcPositions.left > otherCar.right);
-}
-function gameOver() {
-    player.start = false;
-    player.speed = 10;
-    player.level = 0;
-    bgAudio.pause();
-    endGameAudio.play();
-    startScreen.classList.remove("hideClass");
-}
-//# sourceMappingURL=index.js.map
+/*
+ * ATTENTION: An "eval-source-map" devtool has been used.
+ * This devtool is neither made for production nor for readable output files.
+ * It uses "eval()" calls to create a separate source file with attached SourceMaps in the browser devtools.
+ * If you are trying to read the output file, select a different devtool (https://webpack.js.org/configuration/devtool/)
+ * or disable the default devtool with "devtool: false".
+ * If you are looking for production-ready output files, see mode: "production" (https://webpack.js.org/configuration/mode/).
+ */
+/******/ (() => { // webpackBootstrap
+/******/ 	"use strict";
+/******/ 	var __webpack_modules__ = ({
+
+/***/ "./src/index.ts":
+/*!**********************!*\
+  !*** ./src/index.ts ***!
+  \**********************/
+/***/ (() => {
+
+eval("\nconst score = document.querySelector(\"#score\");\nconst level = document.querySelector(\"#level\");\nconst bgAudio = document.querySelector(\"#bgAudio\");\nconst boardSpeed = document.querySelector(\"#speed\");\nconst gameArea = document.querySelector(\".gameArea\");\nconst hiScoreSet = localStorage.getItem(\"highScore\");\nconst hiScoreDiv = document.querySelector(\"#hiScore\");\nconst scoreBroad = document.querySelector(\"#scoreBroad\");\nconst startScreen = document.querySelector(\".startScreen\");\nconst endGameAudio = document.querySelector(\"#endGameAudio\");\nconst hiScoreBroad = document.querySelector(\"#hiScoreBroad\");\nlet gameKeys = {\n    KeyW: false,\n    KeyS: false,\n    KeyA: false,\n    KeyD: false,\n    ArrowUp: false,\n    ArrowDown: false,\n    ArrowRight: false,\n    ArrowLeft: false,\n    Space: false,\n};\nconst player = {\n    speed: 10,\n    score: 0,\n    speedEndPoint: 18,\n    speedUp: 10,\n    level: 0,\n    X: 0,\n    Y: 0,\n    levelUp: true,\n};\nlet hiscoreVal;\ndocument.addEventListener(\"keydown\", keyDown);\ndocument.addEventListener(\"keyup\", keyUp);\nstartScreen.addEventListener(\"click\", gameStart);\nif (hiScoreSet === null) {\n    hiscoreVal = 0;\n    localStorage.setItem(\"highScore\", hiscoreVal.toString());\n}\nelse {\n    hiscoreVal = parseInt(hiScoreSet);\n    hiScoreDiv.innerHTML = `high score: ${hiscoreVal}`;\n}\nfunction keyDown(e) {\n    e.preventDefault();\n    gameKeys[e.code] = true;\n    // console.log();   \n}\nfunction keyUp(e) {\n    e.preventDefault();\n    gameKeys[e.code] = false;\n    // console.log(); \n}\nfunction gameStart() {\n    player.start = true;\n    bgAudio.src = \"public/assets/audio/bg.mp3\";\n    bgAudio.play();\n    bgAudio.loop = true;\n    bgAudio.currentTime = 0;\n    gameArea.innerHTML = \"\";\n    startScreen.classList.add(\"hideClass\");\n    window.requestAnimationFrame(gamePlay);\n    let playerCar = document.createElement(\"div\");\n    playerCar.setAttribute(\"class\", \"playerCar\");\n    gameArea.appendChild(playerCar);\n    player.X = playerCar.offsetLeft || 0;\n    player.Y = playerCar.offsetTop || 0;\n    for (let i = 0; i <= 9; i++) {\n        let roadLines = document.createElement(\"div\");\n        roadLines.setAttribute(\"class\", \"lines\");\n        roadLines.Y = i * 180;\n        roadLines.style.top = roadLines.Y + \"px\";\n        gameArea.appendChild(roadLines);\n    }\n    for (let x = 0; x <= 2; x++) {\n        let otherCars = document.createElement(\"div\");\n        otherCars.setAttribute(\"class\", \"otherCars\");\n        otherCars.Y = (x + 1) * 250 * -1;\n        gameArea.appendChild(otherCars);\n    }\n}\nfunction gamePlay() {\n    let playerCar = document.querySelector(\".playerCar\");\n    let gaPositions = gameArea.getBoundingClientRect();\n    let pcPositions = playerCar.getBoundingClientRect();\n    if (player.start) {\n        moveLine();\n        moveOtherCar(pcPositions);\n        if ((gameKeys.KeyW || gameKeys.ArrowUp) &&\n            gaPositions.top < pcPositions.top - 155) {\n            player.Y -= player.speed;\n        }\n        else if ((gameKeys.KeyS || gameKeys.ArrowDown) &&\n            gaPositions.bottom > pcPositions.bottom + 20) {\n            player.Y += player.speed;\n        }\n        else if ((gameKeys.KeyA || gameKeys.ArrowLeft) &&\n            gaPositions.left < pcPositions.left - 30) {\n            player.X -= player.speed;\n        }\n        else if ((gameKeys.KeyD || gameKeys.ArrowRight) &&\n            gaPositions.right > pcPositions.right + 30) {\n            player.X += player.speed;\n        }\n        playerCar.style.top = `${player.Y}px`;\n        playerCar.style.left = `${player.X}px`;\n        window.requestAnimationFrame(gamePlay);\n        let currentScore = player.score++;\n        score.innerText = \"score: \" + currentScore;\n        if (currentScore > hiscoreVal) {\n            hiscoreVal = currentScore;\n            localStorage.setItem(\"highScore\", hiscoreVal.toString());\n            hiScoreDiv.innerHTML = `high score: ${hiscoreVal}`;\n        }\n        if (!player.start) {\n            scoreBroad.innerText = `your score: ${currentScore}`;\n            hiScoreBroad.innerText = `your high score: ${hiscoreVal}`;\n            player.score = 0;\n        }\n        increaseSpeed(currentScore);\n    }\n}\nfunction moveLine() {\n    let roadlines = document.querySelectorAll(\".lines\");\n    roadlines.forEach((value) => {\n        if (value.Y >= 900) {\n            value.Y -= 900;\n        }\n        value.Y += player.speed;\n        value.style.top = value.Y + \"px\";\n    });\n}\nfunction moveOtherCar(playerCar) {\n    let otherCars = document.querySelectorAll(\".otherCars\");\n    otherCars.forEach((value) => {\n        var _a, _b;\n        if (colliding(playerCar, value)) {\n            gameOver();\n        }\n        else {\n            if (value.Y === undefined || value.Y >= 900) {\n                value.Y = ((_a = value.Y) !== null && _a !== void 0 ? _a : 0) - 900;\n                value.style.left = Math.floor(Math.random() * 99) + 1 + \"%\";\n            }\n            value.Y = ((_b = value.Y) !== null && _b !== void 0 ? _b : 0) + player.speed;\n            value.style.top = value.Y + \"px\";\n        }\n    });\n}\nfunction increaseSpeed(speed) {\n    let count = parseInt(speed.toString().substr(-2));\n    if (count == 99) {\n        player.speed += 0.005;\n    }\n    if (player.speed == player.speedEndPoint) {\n        player.speed = player.speedUp;\n        player.speedUp += 1;\n        player.speedEndPoint += 1;\n        player.level += 1;\n    }\n    level.innerText = `Level: ${player.level}`;\n    boardSpeed.innerText = `Speed: ${player.speed}`;\n}\nfunction colliding(pcPositions, otherCars) {\n    let otherCar = otherCars.getBoundingClientRect();\n    return !(pcPositions.right < otherCar.left ||\n        pcPositions.bottom < otherCar.top ||\n        pcPositions.top > otherCar.bottom ||\n        pcPositions.left > otherCar.right);\n}\nfunction gameOver() {\n    player.start = false;\n    player.speed = 10;\n    player.level = 0;\n    bgAudio.pause();\n    endGameAudio.play();\n    startScreen.classList.remove(\"hideClass\");\n}\n//# sourceURL=[module]\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiLi9zcmMvaW5kZXgudHMiLCJtYXBwaW5ncyI6IjtBQUFBLE1BQU0sS0FBSyxHQUFHLFFBQVEsQ0FBQyxhQUFhLENBQUMsUUFBUSxDQUFtQixDQUFDO0FBQ2pFLE1BQU0sS0FBSyxHQUFHLFFBQVEsQ0FBQyxhQUFhLENBQUMsUUFBUSxDQUFtQixDQUFDO0FBQ2pFLE1BQU0sT0FBTyxHQUFHLFFBQVEsQ0FBQyxhQUFhLENBQUMsVUFBVSxDQUFxQixDQUFDO0FBQ3ZFLE1BQU0sVUFBVSxHQUFHLFFBQVEsQ0FBQyxhQUFhLENBQUMsUUFBUSxDQUFtQixDQUFDO0FBQ3RFLE1BQU0sUUFBUSxHQUFHLFFBQVEsQ0FBQyxhQUFhLENBQUMsV0FBVyxDQUFtQixDQUFDO0FBQ3ZFLE1BQU0sVUFBVSxHQUFHLFlBQVksQ0FBQyxPQUFPLENBQUMsV0FBVyxDQUFDLENBQUM7QUFDckQsTUFBTSxVQUFVLEdBQUcsUUFBUSxDQUFDLGFBQWEsQ0FBQyxVQUFVLENBQW1CLENBQUM7QUFDeEUsTUFBTSxVQUFVLEdBQUcsUUFBUSxDQUFDLGFBQWEsQ0FBQyxhQUFhLENBQW1CLENBQUM7QUFDM0UsTUFBTSxXQUFXLEdBQUcsUUFBUSxDQUFDLGFBQWEsQ0FBQyxjQUFjLENBQW1CLENBQUM7QUFDN0UsTUFBTSxZQUFZLEdBQUcsUUFBUSxDQUFDLGFBQWEsQ0FBQyxlQUFlLENBQXFCLENBQUM7QUFDakYsTUFBTSxZQUFZLEdBQUcsUUFBUSxDQUFDLGFBQWEsQ0FBQyxlQUFlLENBQW1CLENBQUM7QUFNL0UsSUFBSSxRQUFRLEdBQTRCO0lBQ3RDLElBQUksRUFBRSxLQUFLO0lBQ1gsSUFBSSxFQUFFLEtBQUs7SUFDWCxJQUFJLEVBQUUsS0FBSztJQUNYLElBQUksRUFBRSxLQUFLO0lBQ1gsT0FBTyxFQUFFLEtBQUs7SUFDZCxTQUFTLEVBQUUsS0FBSztJQUNoQixVQUFVLEVBQUUsS0FBSztJQUNqQixTQUFTLEVBQUUsS0FBSztJQUNoQixLQUFLLEVBQUUsS0FBSztDQUNiLENBQUM7QUFjQSxNQUFNLE1BQU0sR0FBVztJQUNyQixLQUFLLEVBQUUsRUFBRTtJQUNULEtBQUssRUFBRSxDQUFDO0lBQ1IsYUFBYSxFQUFFLEVBQUU7SUFDakIsT0FBTyxFQUFFLEVBQUU7SUFDWCxLQUFLLEVBQUUsQ0FBQztJQUNSLENBQUMsRUFBRSxDQUFDO0lBQ0osQ0FBQyxFQUFFLENBQUM7SUFDSixPQUFPLEVBQUUsSUFBSTtDQUNkLENBQUM7QUFFSixJQUFJLFVBQWtCLENBQUM7QUFHdkIsUUFBUSxDQUFDLGdCQUFnQixDQUFDLFNBQVMsRUFBRSxPQUFPLENBQUMsQ0FBQztBQUM5QyxRQUFRLENBQUMsZ0JBQWdCLENBQUMsT0FBTyxFQUFFLEtBQUssQ0FBQyxDQUFDO0FBQzFDLFdBQVcsQ0FBQyxnQkFBZ0IsQ0FBQyxPQUFPLEVBQUUsU0FBUyxDQUFDLENBQUM7QUFFakQsSUFBSSxVQUFVLEtBQUssSUFBSSxFQUFFO0lBQ3ZCLFVBQVUsR0FBRyxDQUFDLENBQUM7SUFDZixZQUFZLENBQUMsT0FBTyxDQUFDLFdBQVcsRUFBRSxVQUFVLENBQUMsUUFBUSxFQUFFLENBQUMsQ0FBQztDQUMxRDtLQUFNO0lBQ0wsVUFBVSxHQUFHLFFBQVEsQ0FBQyxVQUFVLENBQUMsQ0FBQztJQUNsQyxVQUFVLENBQUMsU0FBUyxHQUFHLGVBQWUsVUFBVSxFQUFFLENBQUM7Q0FDcEQ7QUFHRCxTQUFTLE9BQU8sQ0FBQyxDQUFnQjtJQUMvQixDQUFDLENBQUMsY0FBYyxFQUFFLENBQUM7SUFDbkIsUUFBUSxDQUFDLENBQUMsQ0FBQyxJQUFJLENBQUMsR0FBRyxJQUFJLENBQUM7SUFDeEIsb0JBQW9CO0FBQ3RCLENBQUM7QUFFRCxTQUFTLEtBQUssQ0FBQyxDQUFnQjtJQUM3QixDQUFDLENBQUMsY0FBYyxFQUFFLENBQUM7SUFDbkIsUUFBUSxDQUFDLENBQUMsQ0FBQyxJQUFJLENBQUMsR0FBRyxLQUFLLENBQUM7SUFDekIsa0JBQWtCO0FBQ3BCLENBQUM7QUFFRCxTQUFTLFNBQVM7SUFDaEIsTUFBTSxDQUFDLEtBQUssR0FBRyxJQUFJLENBQUM7SUFDcEIsT0FBTyxDQUFDLEdBQUcsR0FBRyw0QkFBNEIsQ0FBQztJQUMzQyxPQUFPLENBQUMsSUFBSSxFQUFFLENBQUM7SUFDZixPQUFPLENBQUMsSUFBSSxHQUFHLElBQUksQ0FBQztJQUNwQixPQUFPLENBQUMsV0FBVyxHQUFHLENBQUMsQ0FBQztJQUN4QixRQUFRLENBQUMsU0FBUyxHQUFHLEVBQUUsQ0FBQztJQUN4QixXQUFXLENBQUMsU0FBUyxDQUFDLEdBQUcsQ0FBQyxXQUFXLENBQUMsQ0FBQztJQUN2QyxNQUFNLENBQUMscUJBQXFCLENBQUMsUUFBUSxDQUFDLENBQUM7SUFHdkMsSUFBSSxTQUFTLEdBQUcsUUFBUSxDQUFDLGFBQWEsQ0FBQyxLQUFLLENBQUMsQ0FBQztJQUM5QyxTQUFTLENBQUMsWUFBWSxDQUFDLE9BQU8sRUFBRSxXQUFXLENBQUMsQ0FBQztJQUM3QyxRQUFRLENBQUMsV0FBVyxDQUFDLFNBQVMsQ0FBQyxDQUFDO0lBRWhDLE1BQU0sQ0FBQyxDQUFDLEdBQUcsU0FBUyxDQUFDLFVBQVUsSUFBSSxDQUFDLENBQUM7SUFDckMsTUFBTSxDQUFDLENBQUMsR0FBRyxTQUFTLENBQUMsU0FBUyxJQUFJLENBQUMsQ0FBQztJQU1wQyxLQUFLLElBQUksQ0FBQyxHQUFHLENBQUMsRUFBRSxDQUFDLElBQUksQ0FBQyxFQUFFLENBQUMsRUFBRSxFQUFFO1FBQzNCLElBQUksU0FBUyxHQUFHLFFBQVEsQ0FBQyxhQUFhLENBQUMsS0FBSyxDQUFjLENBQUM7UUFDM0QsU0FBUyxDQUFDLFlBQVksQ0FBQyxPQUFPLEVBQUUsT0FBTyxDQUFDLENBQUM7UUFDekMsU0FBUyxDQUFDLENBQUMsR0FBRyxDQUFDLEdBQUcsR0FBRyxDQUFDO1FBQ3RCLFNBQVMsQ0FBQyxLQUFLLENBQUMsR0FBRyxHQUFHLFNBQVMsQ0FBQyxDQUFDLEdBQUcsSUFBSSxDQUFDO1FBQ3pDLFFBQVEsQ0FBQyxXQUFXLENBQUMsU0FBUyxDQUFDLENBQUM7S0FDakM7SUFFRCxLQUFLLElBQUksQ0FBQyxHQUFHLENBQUMsRUFBRSxDQUFDLElBQUksQ0FBQyxFQUFFLENBQUMsRUFBRSxFQUFFO1FBRTNCLElBQUksU0FBUyxHQUFHLFFBQVEsQ0FBQyxhQUFhLENBQUMsS0FBSyxDQUFtQyxDQUFDO1FBQ2hGLFNBQVMsQ0FBQyxZQUFZLENBQUMsT0FBTyxFQUFFLFdBQVcsQ0FBQyxDQUFDO1FBQzdDLFNBQVMsQ0FBQyxDQUFDLEdBQUcsQ0FBQyxDQUFDLEdBQUcsQ0FBQyxDQUFDLEdBQUcsR0FBRyxHQUFHLENBQUMsQ0FBQyxDQUFDO1FBQ2pDLFFBQVEsQ0FBQyxXQUFXLENBQUMsU0FBUyxDQUFDLENBQUM7S0FDakM7QUFDSCxDQUFDO0FBRUQsU0FBUyxRQUFRO0lBQ2YsSUFBSSxTQUFTLEdBQUcsUUFBUSxDQUFDLGFBQWEsQ0FBQyxZQUFZLENBQW1CLENBQUM7SUFDdkUsSUFBSSxXQUFXLEdBQUcsUUFBUSxDQUFDLHFCQUFxQixFQUFFLENBQUM7SUFDbkQsSUFBSSxXQUFXLEdBQUcsU0FBUyxDQUFDLHFCQUFxQixFQUFFLENBQUM7SUFFcEQsSUFBSSxNQUFNLENBQUMsS0FBSyxFQUFFO1FBRWhCLFFBQVEsRUFBRSxDQUFDO1FBQ1gsWUFBWSxDQUFDLFdBQVcsQ0FBQyxDQUFDO1FBRTFCLElBQ0ksQ0FBQyxRQUFRLENBQUMsSUFBSSxJQUFJLFFBQVEsQ0FBQyxPQUFPLENBQUM7WUFDbkMsV0FBVyxDQUFDLEdBQUcsR0FBRyxXQUFXLENBQUMsR0FBRyxHQUFHLEdBQUcsRUFDdkM7WUFDQSxNQUFNLENBQUMsQ0FBQyxJQUFJLE1BQU0sQ0FBQyxLQUFLLENBQUM7U0FDMUI7YUFBTSxJQUNMLENBQUMsUUFBUSxDQUFDLElBQUksSUFBSSxRQUFRLENBQUMsU0FBUyxDQUFDO1lBQ3JDLFdBQVcsQ0FBQyxNQUFNLEdBQUcsV0FBVyxDQUFDLE1BQU0sR0FBRyxFQUFFLEVBQzVDO1lBQ0EsTUFBTSxDQUFDLENBQUMsSUFBSSxNQUFNLENBQUMsS0FBSyxDQUFDO1NBQzFCO2FBQU0sSUFDTCxDQUFDLFFBQVEsQ0FBQyxJQUFJLElBQUksUUFBUSxDQUFDLFNBQVMsQ0FBQztZQUNyQyxXQUFXLENBQUMsSUFBSSxHQUFHLFdBQVcsQ0FBQyxJQUFJLEdBQUcsRUFBRSxFQUN4QztZQUNBLE1BQU0sQ0FBQyxDQUFDLElBQUksTUFBTSxDQUFDLEtBQUssQ0FBQztTQUMxQjthQUFNLElBQ0wsQ0FBQyxRQUFRLENBQUMsSUFBSSxJQUFJLFFBQVEsQ0FBQyxVQUFVLENBQUM7WUFDdEMsV0FBVyxDQUFDLEtBQUssR0FBRyxXQUFXLENBQUMsS0FBSyxHQUFHLEVBQUUsRUFDMUM7WUFDQSxNQUFNLENBQUMsQ0FBQyxJQUFJLE1BQU0sQ0FBQyxLQUFLLENBQUM7U0FDMUI7UUFFSCxTQUFTLENBQUMsS0FBSyxDQUFDLEdBQUcsR0FBRyxHQUFHLE1BQU0sQ0FBQyxDQUFDLElBQUksQ0FBQztRQUN0QyxTQUFTLENBQUMsS0FBSyxDQUFDLElBQUksR0FBRyxHQUFHLE1BQU0sQ0FBQyxDQUFDLElBQUksQ0FBQztRQUV2QyxNQUFNLENBQUMscUJBQXFCLENBQUMsUUFBUSxDQUFDLENBQUM7UUFHdkMsSUFBSSxZQUFZLEdBQUcsTUFBTSxDQUFDLEtBQUssRUFBRSxDQUFDO1FBQ2xDLEtBQUssQ0FBQyxTQUFTLEdBQUcsU0FBUyxHQUFHLFlBQVksQ0FBQztRQUczQyxJQUFJLFlBQVksR0FBRyxVQUFVLEVBQUU7WUFFN0IsVUFBVSxHQUFHLFlBQVksQ0FBQztZQUMxQixZQUFZLENBQUMsT0FBTyxDQUFDLFdBQVcsRUFBRSxVQUFVLENBQUMsUUFBUSxFQUFFLENBQUMsQ0FBQztZQUN6RCxVQUFVLENBQUMsU0FBUyxHQUFHLGVBQWUsVUFBVSxFQUFFLENBQUM7U0FDcEQ7UUFFRCxJQUFJLENBQUMsTUFBTSxDQUFDLEtBQUssRUFBRTtZQUNqQixVQUFVLENBQUMsU0FBUyxHQUFHLGVBQWUsWUFBWSxFQUFFLENBQUM7WUFDckQsWUFBWSxDQUFDLFNBQVMsR0FBRyxvQkFBb0IsVUFBVSxFQUFFLENBQUM7WUFDMUQsTUFBTSxDQUFDLEtBQUssR0FBRyxDQUFDLENBQUM7U0FDbEI7UUFHRCxhQUFhLENBQUMsWUFBWSxDQUFDLENBQUM7S0FDN0I7QUFDSCxDQUFDO0FBTUQsU0FBUyxRQUFRO0lBQ2IsSUFBSSxTQUFTLEdBQUcsUUFBUSxDQUFDLGdCQUFnQixDQUFDLFFBQVEsQ0FBMEIsQ0FBQztJQUM3RSxTQUFTLENBQUMsT0FBTyxDQUFDLENBQUMsS0FBSyxFQUFFLEVBQUU7UUFDMUIsSUFBSSxLQUFLLENBQUMsQ0FBQyxJQUFJLEdBQUcsRUFBRTtZQUNsQixLQUFLLENBQUMsQ0FBQyxJQUFJLEdBQUcsQ0FBQztTQUNoQjtRQUNELEtBQUssQ0FBQyxDQUFDLElBQUksTUFBTSxDQUFDLEtBQUssQ0FBQztRQUN4QixLQUFLLENBQUMsS0FBSyxDQUFDLEdBQUcsR0FBRyxLQUFLLENBQUMsQ0FBQyxHQUFHLElBQUksQ0FBQztJQUNuQyxDQUFDLENBQUMsQ0FBQztBQUNMLENBQUM7QUFHRCxTQUFTLFlBQVksQ0FBQyxTQUFrQjtJQUN0QyxJQUFJLFNBQVMsR0FBRyxRQUFRLENBQUMsZ0JBQWdCLENBQUMsWUFBWSxDQUFpQyxDQUFDO0lBRXhGLFNBQVMsQ0FBQyxPQUFPLENBQUMsQ0FBQyxLQUFLLEVBQUUsRUFBRTs7UUFDMUIsSUFBSSxTQUFTLENBQUMsU0FBUyxFQUFFLEtBQUssQ0FBQyxFQUFFO1lBQy9CLFFBQVEsRUFBRSxDQUFDO1NBQ1o7YUFBTTtZQUVMLElBQUksS0FBSyxDQUFDLENBQUMsS0FBSyxTQUFTLElBQUksS0FBSyxDQUFDLENBQUMsSUFBSSxHQUFHLEVBQUU7Z0JBQzNDLEtBQUssQ0FBQyxDQUFDLEdBQUcsQ0FBQyxXQUFLLENBQUMsQ0FBQyxtQ0FBSSxDQUFDLENBQUMsR0FBRyxHQUFHLENBQUM7Z0JBRS9CLEtBQUssQ0FBQyxLQUFLLENBQUMsSUFBSSxHQUFHLElBQUksQ0FBQyxLQUFLLENBQUMsSUFBSSxDQUFDLE1BQU0sRUFBRSxHQUFHLEVBQUUsQ0FBQyxHQUFHLENBQUMsR0FBRyxHQUFHLENBQUM7YUFDN0Q7WUFDRCxLQUFLLENBQUMsQ0FBQyxHQUFHLENBQUMsV0FBSyxDQUFDLENBQUMsbUNBQUksQ0FBQyxDQUFDLEdBQUcsTUFBTSxDQUFDLEtBQUssQ0FBQztZQUN4QyxLQUFLLENBQUMsS0FBSyxDQUFDLEdBQUcsR0FBRyxLQUFLLENBQUMsQ0FBQyxHQUFHLElBQUksQ0FBQztTQUNsQztJQUNILENBQUMsQ0FBQyxDQUFDO0FBQ0wsQ0FBQztBQUVILFNBQVMsYUFBYSxDQUFDLEtBQWE7SUFDbEMsSUFBSSxLQUFLLEdBQUcsUUFBUSxDQUFDLEtBQUssQ0FBQyxRQUFRLEVBQUUsQ0FBQyxNQUFNLENBQUMsQ0FBQyxDQUFDLENBQUMsQ0FBQyxDQUFDO0lBQ2xELElBQUksS0FBSyxJQUFJLEVBQUUsRUFBRTtRQUNmLE1BQU0sQ0FBQyxLQUFLLElBQUksS0FBSyxDQUFDO0tBQ3ZCO0lBQ0QsSUFBSSxNQUFNLENBQUMsS0FBSyxJQUFJLE1BQU0sQ0FBQyxhQUFhLEVBQUU7UUFDeEMsTUFBTSxDQUFDLEtBQUssR0FBRyxNQUFNLENBQUMsT0FBTyxDQUFDO1FBQzlCLE1BQU0sQ0FBQyxPQUFPLElBQUksQ0FBQyxDQUFDO1FBQ3BCLE1BQU0sQ0FBQyxhQUFhLElBQUksQ0FBQyxDQUFDO1FBQzFCLE1BQU0sQ0FBQyxLQUFLLElBQUksQ0FBQyxDQUFDO0tBQ25CO0lBQ0QsS0FBSyxDQUFDLFNBQVMsR0FBRyxVQUFVLE1BQU0sQ0FBQyxLQUFLLEVBQUUsQ0FBQztJQUMzQyxVQUFVLENBQUMsU0FBUyxHQUFHLFVBQVUsTUFBTSxDQUFDLEtBQUssRUFBRSxDQUFDO0FBQ2xELENBQUM7QUFFRCxTQUFTLFNBQVMsQ0FBQyxXQUFvQixFQUFFLFNBQXlCO0lBQ2hFLElBQUksUUFBUSxHQUFHLFNBQVMsQ0FBQyxxQkFBcUIsRUFBRSxDQUFDO0lBRWpELE9BQU8sQ0FBQyxDQUNOLFdBQVcsQ0FBQyxLQUFLLEdBQUcsUUFBUSxDQUFDLElBQUk7UUFDakMsV0FBVyxDQUFDLE1BQU0sR0FBRyxRQUFRLENBQUMsR0FBRztRQUNqQyxXQUFXLENBQUMsR0FBRyxHQUFHLFFBQVEsQ0FBQyxNQUFNO1FBQ2pDLFdBQVcsQ0FBQyxJQUFJLEdBQUcsUUFBUSxDQUFDLEtBQUssQ0FDbEMsQ0FBQztBQUNKLENBQUM7QUFFRCxTQUFTLFFBQVE7SUFDZixNQUFNLENBQUMsS0FBSyxHQUFHLEtBQUssQ0FBQztJQUNyQixNQUFNLENBQUMsS0FBSyxHQUFHLEVBQUUsQ0FBQztJQUNsQixNQUFNLENBQUMsS0FBSyxHQUFHLENBQUMsQ0FBQztJQUNqQixPQUFPLENBQUMsS0FBSyxFQUFFLENBQUM7SUFDaEIsWUFBWSxDQUFDLElBQUksRUFBRSxDQUFDO0lBQ3BCLFdBQVcsQ0FBQyxTQUFTLENBQUMsTUFBTSxDQUFDLFdBQVcsQ0FBQyxDQUFDO0FBQzVDLENBQUMiLCJzb3VyY2VzIjpbIndlYnBhY2s6Ly90eXBlc2NyaXB0LWNvbmZpZ3VyYXRpb25zLy4vc3JjL2luZGV4LnRzP2ZmYjQiXSwic291cmNlc0NvbnRlbnQiOlsiY29uc3Qgc2NvcmUgPSBkb2N1bWVudC5xdWVyeVNlbGVjdG9yKFwiI3Njb3JlXCIpIGFzIEhUTUxEaXZFbGVtZW50O1xyXG5jb25zdCBsZXZlbCA9IGRvY3VtZW50LnF1ZXJ5U2VsZWN0b3IoXCIjbGV2ZWxcIikgYXMgSFRNTERpdkVsZW1lbnQ7XHJcbmNvbnN0IGJnQXVkaW8gPSBkb2N1bWVudC5xdWVyeVNlbGVjdG9yKFwiI2JnQXVkaW9cIikgYXMgSFRNTEF1ZGlvRWxlbWVudDtcclxuY29uc3QgYm9hcmRTcGVlZCA9IGRvY3VtZW50LnF1ZXJ5U2VsZWN0b3IoXCIjc3BlZWRcIikgYXMgSFRNTERpdkVsZW1lbnQ7XHJcbmNvbnN0IGdhbWVBcmVhID0gZG9jdW1lbnQucXVlcnlTZWxlY3RvcihcIi5nYW1lQXJlYVwiKSBhcyBIVE1MRGl2RWxlbWVudDsgXHJcbmNvbnN0IGhpU2NvcmVTZXQgPSBsb2NhbFN0b3JhZ2UuZ2V0SXRlbShcImhpZ2hTY29yZVwiKTtcclxuY29uc3QgaGlTY29yZURpdiA9IGRvY3VtZW50LnF1ZXJ5U2VsZWN0b3IoXCIjaGlTY29yZVwiKSBhcyBIVE1MRGl2RWxlbWVudDtcclxuY29uc3Qgc2NvcmVCcm9hZCA9IGRvY3VtZW50LnF1ZXJ5U2VsZWN0b3IoXCIjc2NvcmVCcm9hZFwiKSBhcyBIVE1MRGl2RWxlbWVudDtcclxuY29uc3Qgc3RhcnRTY3JlZW4gPSBkb2N1bWVudC5xdWVyeVNlbGVjdG9yKFwiLnN0YXJ0U2NyZWVuXCIpIGFzIEhUTUxEaXZFbGVtZW50O1xyXG5jb25zdCBlbmRHYW1lQXVkaW8gPSBkb2N1bWVudC5xdWVyeVNlbGVjdG9yKFwiI2VuZEdhbWVBdWRpb1wiKSBhcyBIVE1MQXVkaW9FbGVtZW50O1xyXG5jb25zdCBoaVNjb3JlQnJvYWQgPSBkb2N1bWVudC5xdWVyeVNlbGVjdG9yKFwiI2hpU2NvcmVCcm9hZFwiKSBhcyBIVE1MRGl2RWxlbWVudDtcclxuXHJcbmludGVyZmFjZSBDdXN0b21EaXZFbGVtZW50IGV4dGVuZHMgSFRNTERpdkVsZW1lbnQge1xyXG4gICAgICAgICBZPzogbnVtYmVyO1xyXG4gICAgfVxyXG5cclxubGV0IGdhbWVLZXlzOiBSZWNvcmQ8c3RyaW5nLCBib29sZWFuPiA9IHtcclxuICBLZXlXOiBmYWxzZSxcclxuICBLZXlTOiBmYWxzZSxcclxuICBLZXlBOiBmYWxzZSxcclxuICBLZXlEOiBmYWxzZSxcclxuICBBcnJvd1VwOiBmYWxzZSxcclxuICBBcnJvd0Rvd246IGZhbHNlLFxyXG4gIEFycm93UmlnaHQ6IGZhbHNlLFxyXG4gIEFycm93TGVmdDogZmFsc2UsXHJcbiAgU3BhY2U6IGZhbHNlLFxyXG59O1xyXG5cclxuaW50ZXJmYWNlIFBsYXllciB7XHJcbiAgICBzcGVlZDogbnVtYmVyO1xyXG4gICAgc2NvcmU6IG51bWJlcjtcclxuICAgIHNwZWVkRW5kUG9pbnQ6IG51bWJlcjtcclxuICAgIHNwZWVkVXA6IG51bWJlcjtcclxuICAgIGxldmVsOiBudW1iZXI7XHJcbiAgICBsZXZlbFVwOiBib29sZWFuO1xyXG4gICAgc3RhcnQ/OiBib29sZWFuOyBcclxuICAgIFg/OiBhbnk7XHJcbiAgICBZPzogYW55O1xyXG59XHJcbiAgXHJcbiAgY29uc3QgcGxheWVyOiBQbGF5ZXIgPSB7XHJcbiAgICBzcGVlZDogMTAsXHJcbiAgICBzY29yZTogMCxcclxuICAgIHNwZWVkRW5kUG9pbnQ6IDE4LFxyXG4gICAgc3BlZWRVcDogMTAsXHJcbiAgICBsZXZlbDogMCxcclxuICAgIFg6IDAsIFxyXG4gICAgWTogMCwgXHJcbiAgICBsZXZlbFVwOiB0cnVlLFxyXG4gIH07XHJcblxyXG5sZXQgaGlzY29yZVZhbDogbnVtYmVyO1xyXG5cclxuXHJcbmRvY3VtZW50LmFkZEV2ZW50TGlzdGVuZXIoXCJrZXlkb3duXCIsIGtleURvd24pO1xyXG5kb2N1bWVudC5hZGRFdmVudExpc3RlbmVyKFwia2V5dXBcIiwga2V5VXApO1xyXG5zdGFydFNjcmVlbi5hZGRFdmVudExpc3RlbmVyKFwiY2xpY2tcIiwgZ2FtZVN0YXJ0KTtcclxuXHJcbmlmIChoaVNjb3JlU2V0ID09PSBudWxsKSB7XHJcbiAgaGlzY29yZVZhbCA9IDA7XHJcbiAgbG9jYWxTdG9yYWdlLnNldEl0ZW0oXCJoaWdoU2NvcmVcIiwgaGlzY29yZVZhbC50b1N0cmluZygpKTtcclxufSBlbHNlIHtcclxuICBoaXNjb3JlVmFsID0gcGFyc2VJbnQoaGlTY29yZVNldCk7XHJcbiAgaGlTY29yZURpdi5pbm5lckhUTUwgPSBgaGlnaCBzY29yZTogJHtoaXNjb3JlVmFsfWA7XHJcbn1cclxuXHJcblxyXG5mdW5jdGlvbiBrZXlEb3duKGU6IEtleWJvYXJkRXZlbnQpIHtcclxuICBlLnByZXZlbnREZWZhdWx0KCk7XHJcbiAgZ2FtZUtleXNbZS5jb2RlXSA9IHRydWU7XHJcbiAgLy8gY29uc29sZS5sb2coKTsgICBcclxufVxyXG5cclxuZnVuY3Rpb24ga2V5VXAoZTogS2V5Ym9hcmRFdmVudCkge1xyXG4gIGUucHJldmVudERlZmF1bHQoKTtcclxuICBnYW1lS2V5c1tlLmNvZGVdID0gZmFsc2U7XHJcbiAgLy8gY29uc29sZS5sb2coKTsgXHJcbn1cclxuXHJcbmZ1bmN0aW9uIGdhbWVTdGFydCgpIHtcclxuICBwbGF5ZXIuc3RhcnQgPSB0cnVlO1xyXG4gIGJnQXVkaW8uc3JjID0gXCJwdWJsaWMvYXNzZXRzL2F1ZGlvL2JnLm1wM1wiO1xyXG4gIGJnQXVkaW8ucGxheSgpO1xyXG4gIGJnQXVkaW8ubG9vcCA9IHRydWU7XHJcbiAgYmdBdWRpby5jdXJyZW50VGltZSA9IDA7XHJcbiAgZ2FtZUFyZWEuaW5uZXJIVE1MID0gXCJcIjsgXHJcbiAgc3RhcnRTY3JlZW4uY2xhc3NMaXN0LmFkZChcImhpZGVDbGFzc1wiKTtcclxuICB3aW5kb3cucmVxdWVzdEFuaW1hdGlvbkZyYW1lKGdhbWVQbGF5KTsgXHJcblxyXG4gIFxyXG4gIGxldCBwbGF5ZXJDYXIgPSBkb2N1bWVudC5jcmVhdGVFbGVtZW50KFwiZGl2XCIpO1xyXG4gIHBsYXllckNhci5zZXRBdHRyaWJ1dGUoXCJjbGFzc1wiLCBcInBsYXllckNhclwiKTtcclxuICBnYW1lQXJlYS5hcHBlbmRDaGlsZChwbGF5ZXJDYXIpO1xyXG5cclxuICBwbGF5ZXIuWCA9IHBsYXllckNhci5vZmZzZXRMZWZ0IHx8IDA7XHJcbiAgcGxheWVyLlkgPSBwbGF5ZXJDYXIub2Zmc2V0VG9wIHx8IDA7XHJcblxyXG4gIGludGVyZmFjZSBSb2FkTGluZXMgZXh0ZW5kcyBIVE1MRGl2RWxlbWVudCB7XHJcbiAgICBZOiBudW1iZXI7XHJcbiAgfVxyXG4gIFxyXG4gIGZvciAobGV0IGkgPSAwOyBpIDw9IDk7IGkrKykge1xyXG4gICAgbGV0IHJvYWRMaW5lcyA9IGRvY3VtZW50LmNyZWF0ZUVsZW1lbnQoXCJkaXZcIikgYXMgUm9hZExpbmVzO1xyXG4gICAgcm9hZExpbmVzLnNldEF0dHJpYnV0ZShcImNsYXNzXCIsIFwibGluZXNcIik7XHJcbiAgICByb2FkTGluZXMuWSA9IGkgKiAxODA7XHJcbiAgICByb2FkTGluZXMuc3R5bGUudG9wID0gcm9hZExpbmVzLlkgKyBcInB4XCI7XHJcbiAgICBnYW1lQXJlYS5hcHBlbmRDaGlsZChyb2FkTGluZXMpO1xyXG4gIH1cclxuICAgIFxyXG4gIGZvciAobGV0IHggPSAwOyB4IDw9IDI7IHgrKykge1xyXG4gICAgXHJcbiAgICBsZXQgb3RoZXJDYXJzID0gZG9jdW1lbnQuY3JlYXRlRWxlbWVudChcImRpdlwiKSBhcyBIVE1MRGl2RWxlbWVudCAmIHsgWTogbnVtYmVyIH07XHJcbiAgICBvdGhlckNhcnMuc2V0QXR0cmlidXRlKFwiY2xhc3NcIiwgXCJvdGhlckNhcnNcIik7XHJcbiAgICBvdGhlckNhcnMuWSA9ICh4ICsgMSkgKiAyNTAgKiAtMTsgXHJcbiAgICBnYW1lQXJlYS5hcHBlbmRDaGlsZChvdGhlckNhcnMpO1xyXG4gIH1cclxufVxyXG5cclxuZnVuY3Rpb24gZ2FtZVBsYXkoKSB7XHJcbiAgbGV0IHBsYXllckNhciA9IGRvY3VtZW50LnF1ZXJ5U2VsZWN0b3IoXCIucGxheWVyQ2FyXCIpIGFzIEhUTUxEaXZFbGVtZW50OyBcclxuICBsZXQgZ2FQb3NpdGlvbnMgPSBnYW1lQXJlYS5nZXRCb3VuZGluZ0NsaWVudFJlY3QoKTsgXHJcbiAgbGV0IHBjUG9zaXRpb25zID0gcGxheWVyQ2FyLmdldEJvdW5kaW5nQ2xpZW50UmVjdCgpO1xyXG5cclxuICBpZiAocGxheWVyLnN0YXJ0KSB7XHJcbiAgICBcclxuICAgIG1vdmVMaW5lKCk7IFxyXG4gICAgbW92ZU90aGVyQ2FyKHBjUG9zaXRpb25zKTtcclxuXHJcbiAgICBpZiAoXHJcbiAgICAgICAgKGdhbWVLZXlzLktleVcgfHwgZ2FtZUtleXMuQXJyb3dVcCkgJiZcclxuICAgICAgICBnYVBvc2l0aW9ucy50b3AgPCBwY1Bvc2l0aW9ucy50b3AgLSAxNTVcclxuICAgICAgKSB7XHJcbiAgICAgICAgcGxheWVyLlkgLT0gcGxheWVyLnNwZWVkO1xyXG4gICAgICB9IGVsc2UgaWYgKFxyXG4gICAgICAgIChnYW1lS2V5cy5LZXlTIHx8IGdhbWVLZXlzLkFycm93RG93bikgJiZcclxuICAgICAgICBnYVBvc2l0aW9ucy5ib3R0b20gPiBwY1Bvc2l0aW9ucy5ib3R0b20gKyAyMFxyXG4gICAgICApIHtcclxuICAgICAgICBwbGF5ZXIuWSArPSBwbGF5ZXIuc3BlZWQ7XHJcbiAgICAgIH0gZWxzZSBpZiAoXHJcbiAgICAgICAgKGdhbWVLZXlzLktleUEgfHwgZ2FtZUtleXMuQXJyb3dMZWZ0KSAmJlxyXG4gICAgICAgIGdhUG9zaXRpb25zLmxlZnQgPCBwY1Bvc2l0aW9ucy5sZWZ0IC0gMzBcclxuICAgICAgKSB7XHJcbiAgICAgICAgcGxheWVyLlggLT0gcGxheWVyLnNwZWVkO1xyXG4gICAgICB9IGVsc2UgaWYgKFxyXG4gICAgICAgIChnYW1lS2V5cy5LZXlEIHx8IGdhbWVLZXlzLkFycm93UmlnaHQpICYmXHJcbiAgICAgICAgZ2FQb3NpdGlvbnMucmlnaHQgPiBwY1Bvc2l0aW9ucy5yaWdodCArIDMwXHJcbiAgICAgICkge1xyXG4gICAgICAgIHBsYXllci5YICs9IHBsYXllci5zcGVlZDtcclxuICAgICAgfVxyXG4gICBcclxuICAgIHBsYXllckNhci5zdHlsZS50b3AgPSBgJHtwbGF5ZXIuWX1weGA7XHJcbiAgICBwbGF5ZXJDYXIuc3R5bGUubGVmdCA9IGAke3BsYXllci5YfXB4YDtcclxuXHJcbiAgICB3aW5kb3cucmVxdWVzdEFuaW1hdGlvbkZyYW1lKGdhbWVQbGF5KTsgXHJcblxyXG4gICAgXHJcbiAgICBsZXQgY3VycmVudFNjb3JlID0gcGxheWVyLnNjb3JlKys7XHJcbiAgICBzY29yZS5pbm5lclRleHQgPSBcInNjb3JlOiBcIiArIGN1cnJlbnRTY29yZTtcclxuXHJcbiAgICBcclxuICAgIGlmIChjdXJyZW50U2NvcmUgPiBoaXNjb3JlVmFsKSB7XHJcbiAgICAgIFxyXG4gICAgICBoaXNjb3JlVmFsID0gY3VycmVudFNjb3JlO1xyXG4gICAgICBsb2NhbFN0b3JhZ2Uuc2V0SXRlbShcImhpZ2hTY29yZVwiLCBoaXNjb3JlVmFsLnRvU3RyaW5nKCkpO1xyXG4gICAgICBoaVNjb3JlRGl2LmlubmVySFRNTCA9IGBoaWdoIHNjb3JlOiAke2hpc2NvcmVWYWx9YDtcclxuICAgIH1cclxuXHJcbiAgICBpZiAoIXBsYXllci5zdGFydCkge1xyXG4gICAgICBzY29yZUJyb2FkLmlubmVyVGV4dCA9IGB5b3VyIHNjb3JlOiAke2N1cnJlbnRTY29yZX1gO1xyXG4gICAgICBoaVNjb3JlQnJvYWQuaW5uZXJUZXh0ID0gYHlvdXIgaGlnaCBzY29yZTogJHtoaXNjb3JlVmFsfWA7XHJcbiAgICAgIHBsYXllci5zY29yZSA9IDA7XHJcbiAgICB9XHJcblxyXG4gICAgXHJcbiAgICBpbmNyZWFzZVNwZWVkKGN1cnJlbnRTY29yZSk7XHJcbiAgfVxyXG59XHJcblxyXG5pbnRlcmZhY2UgUm9hZExpbmVzIGV4dGVuZHMgSFRNTERpdkVsZW1lbnQge1xyXG4gICAgWTogbnVtYmVyO1xyXG4gIH1cclxuXHJcbmZ1bmN0aW9uIG1vdmVMaW5lKCkge1xyXG4gICAgbGV0IHJvYWRsaW5lcyA9IGRvY3VtZW50LnF1ZXJ5U2VsZWN0b3JBbGwoXCIubGluZXNcIikgYXMgTm9kZUxpc3RPZjxSb2FkTGluZXM+O1xyXG4gICAgcm9hZGxpbmVzLmZvckVhY2goKHZhbHVlKSA9PiB7XHJcbiAgICAgIGlmICh2YWx1ZS5ZID49IDkwMCkge1xyXG4gICAgICAgIHZhbHVlLlkgLT0gOTAwO1xyXG4gICAgICB9XHJcbiAgICAgIHZhbHVlLlkgKz0gcGxheWVyLnNwZWVkOyBcclxuICAgICAgdmFsdWUuc3R5bGUudG9wID0gdmFsdWUuWSArIFwicHhcIjsgXHJcbiAgICB9KTtcclxuICB9XHJcbiAgXHJcbiAgXHJcbiAgZnVuY3Rpb24gbW92ZU90aGVyQ2FyKHBsYXllckNhcjogRE9NUmVjdCkge1xyXG4gICAgbGV0IG90aGVyQ2FycyA9IGRvY3VtZW50LnF1ZXJ5U2VsZWN0b3JBbGwoXCIub3RoZXJDYXJzXCIpIGFzIE5vZGVMaXN0T2Y8Q3VzdG9tRGl2RWxlbWVudD47XHJcbiAgXHJcbiAgICBvdGhlckNhcnMuZm9yRWFjaCgodmFsdWUpID0+IHtcclxuICAgICAgaWYgKGNvbGxpZGluZyhwbGF5ZXJDYXIsIHZhbHVlKSkge1xyXG4gICAgICAgIGdhbWVPdmVyKCk7XHJcbiAgICAgIH0gZWxzZSB7XHJcbiAgICAgICAgXHJcbiAgICAgICAgaWYgKHZhbHVlLlkgPT09IHVuZGVmaW5lZCB8fCB2YWx1ZS5ZID49IDkwMCkge1xyXG4gICAgICAgICAgdmFsdWUuWSA9ICh2YWx1ZS5ZID8/IDApIC0gOTAwO1xyXG4gICAgICAgICAgXHJcbiAgICAgICAgICB2YWx1ZS5zdHlsZS5sZWZ0ID0gTWF0aC5mbG9vcihNYXRoLnJhbmRvbSgpICogOTkpICsgMSArIFwiJVwiO1xyXG4gICAgICAgIH1cclxuICAgICAgICB2YWx1ZS5ZID0gKHZhbHVlLlkgPz8gMCkgKyBwbGF5ZXIuc3BlZWQ7XHJcbiAgICAgICAgdmFsdWUuc3R5bGUudG9wID0gdmFsdWUuWSArIFwicHhcIjtcclxuICAgICAgfVxyXG4gICAgfSk7XHJcbiAgfVxyXG5cclxuZnVuY3Rpb24gaW5jcmVhc2VTcGVlZChzcGVlZDogbnVtYmVyKSB7XHJcbiAgbGV0IGNvdW50ID0gcGFyc2VJbnQoc3BlZWQudG9TdHJpbmcoKS5zdWJzdHIoLTIpKTtcclxuICBpZiAoY291bnQgPT0gOTkpIHtcclxuICAgIHBsYXllci5zcGVlZCArPSAwLjAwNTtcclxuICB9XHJcbiAgaWYgKHBsYXllci5zcGVlZCA9PSBwbGF5ZXIuc3BlZWRFbmRQb2ludCkge1xyXG4gICAgcGxheWVyLnNwZWVkID0gcGxheWVyLnNwZWVkVXA7XHJcbiAgICBwbGF5ZXIuc3BlZWRVcCArPSAxO1xyXG4gICAgcGxheWVyLnNwZWVkRW5kUG9pbnQgKz0gMTtcclxuICAgIHBsYXllci5sZXZlbCArPSAxO1xyXG4gIH1cclxuICBsZXZlbC5pbm5lclRleHQgPSBgTGV2ZWw6ICR7cGxheWVyLmxldmVsfWA7XHJcbiAgYm9hcmRTcGVlZC5pbm5lclRleHQgPSBgU3BlZWQ6ICR7cGxheWVyLnNwZWVkfWA7XHJcbn1cclxuXHJcbmZ1bmN0aW9uIGNvbGxpZGluZyhwY1Bvc2l0aW9uczogRE9NUmVjdCwgb3RoZXJDYXJzOiBIVE1MRGl2RWxlbWVudCkge1xyXG4gIGxldCBvdGhlckNhciA9IG90aGVyQ2Fycy5nZXRCb3VuZGluZ0NsaWVudFJlY3QoKTtcclxuXHJcbiAgcmV0dXJuICEoXHJcbiAgICBwY1Bvc2l0aW9ucy5yaWdodCA8IG90aGVyQ2FyLmxlZnQgfHxcclxuICAgIHBjUG9zaXRpb25zLmJvdHRvbSA8IG90aGVyQ2FyLnRvcCB8fFxyXG4gICAgcGNQb3NpdGlvbnMudG9wID4gb3RoZXJDYXIuYm90dG9tIHx8XHJcbiAgICBwY1Bvc2l0aW9ucy5sZWZ0ID4gb3RoZXJDYXIucmlnaHRcclxuICApO1xyXG59XHJcblxyXG5mdW5jdGlvbiBnYW1lT3ZlcigpIHtcclxuICBwbGF5ZXIuc3RhcnQgPSBmYWxzZTtcclxuICBwbGF5ZXIuc3BlZWQgPSAxMDtcclxuICBwbGF5ZXIubGV2ZWwgPSAwO1xyXG4gIGJnQXVkaW8ucGF1c2UoKTtcclxuICBlbmRHYW1lQXVkaW8ucGxheSgpO1xyXG4gIHN0YXJ0U2NyZWVuLmNsYXNzTGlzdC5yZW1vdmUoXCJoaWRlQ2xhc3NcIik7XHJcbn1cclxuIl0sIm5hbWVzIjpbXSwic291cmNlUm9vdCI6IiJ9\n//# sourceURL=webpack-internal:///./src/index.ts\n");
+
+/***/ })
+
+/******/ 	});
+/************************************************************************/
+/******/ 	
+/******/ 	// startup
+/******/ 	// Load entry module and return exports
+/******/ 	// This entry module can't be inlined because the eval-source-map devtool is used.
+/******/ 	var __webpack_exports__ = {};
+/******/ 	__webpack_modules__["./src/index.ts"]();
+/******/ 	
+/******/ })()
+;
