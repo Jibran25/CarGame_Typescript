@@ -79,7 +79,7 @@ function keyUp(e: KeyboardEvent) {
 
 function gameStart() {
   player.start = true;
-  bgAudio.src = "assets/audio/bg.mp3";
+  bgAudio.src = "public/assets/audio/bg.mp3";
   bgAudio.play();
   bgAudio.loop = true;
   bgAudio.currentTime = 0;
